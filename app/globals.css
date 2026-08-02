@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0b0e12;
+  --surface: #141920;
+  --surface-hi: #1b222c;
+  --border: #262f3b;
+  --text: #e8ecf1;
+  --text-dim: #8891a0;
+  --gold: #c9a24b;
+  --gold-soft: #d9c084;
+  --profit: #34d399;
+  --loss: #f45b69;
+  --font-display: var(--font-space-grotesk);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-plex-mono);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-hi: var(--surface-hi);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-profit: var(--profit);
+  --color-loss: var(--loss);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--gold);
+  color: #0b0e12;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
