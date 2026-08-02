@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Coins, Users2, ArrowUpRight, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
-import StatCard from "@/components/StatCard";
-import SplitBar from "@/components/SplitBar";
 import ProfitChart from "@/components/ProfitChart";
 import UploadReport from "@/components/UploadReport";
-import StatusBadge from "@/components/StatusBadge";
-import {
-  getMaster,
-  getFollowersForMaster,
-  dailyProfitForMaster,
-  payoutsForMaster,
-} from "@/lib/mock-data";
-import { formatUsd } from "@/lib/format";
+import LiveMasterPanel from "@/components/LiveMasterPanel";
+import { fetchMasterLive } from "@/lib/api";
+import { dailyProfitForMaster } from "@/lib/mock-data";
 
 export default async function MasterDetailPage({
   params,
@@ -21,12 +14,17 @@ export default async function MasterDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const master = getMaster(id);
-  if (!master) notFound();
+  const result = await fetchMasterLive(id);
+  if (!result) notFound();
 
-  const masterFollowers = getFollowersForMaster(id);
+  const { master, followers, payouts, live, lastSyncedAt } = result;
+
+  // The profit trend chart isn't wired to the live API yet (see
+  // DashboardController::profitTrend on the backend for the endpoint) —
+  // it still reads the bundled mock series so the page has something to
+  // show in demo mode. Swap this for a fetch to
+  // `${API_BASE}/masters/${id}/profit-trend` once you're ready.
   const dailyProfit = dailyProfitForMaster(id);
-  const payouts = payoutsForMaster(id);
 
   return (
     <div className="flex min-h-screen">
@@ -39,7 +37,7 @@ export default async function MasterDetailPage({
           <ChevronRight size={12} />
           <span className="text-text">{master.name}</span>
         </div>
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-semibold text-text">{master.name}</h1>
             <p className="mt-1 text-sm text-text-dim">
@@ -48,91 +46,31 @@ export default async function MasterDetailPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Profit periode ini"
-            value={formatUsd(master.totalProfitUsd)}
-            icon={Coins}
-            accent="gold"
-          />
-          <StatCard
-            label="Follower"
-            value={`${master.totalFollowers}`}
-            icon={Users2}
-          />
-          <StatCard
-            label="Rata-rata split follower"
-            value={`${Math.round(
-              masterFollowers.reduce((s, f) => s + f.splitPercent, 0) / masterFollowers.length
-            )}%`}
-            icon={ArrowUpRight}
-          />
-        </div>
+        <LiveMasterPanel
+          masterId={id}
+          initialMaster={master}
+          initialFollowers={followers}
+          initialPayouts={payouts}
+          initialLive={live}
+          initialLastSyncedAt={lastSyncedAt}
+        />
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-2xl border border-border bg-surface p-5">
             <h2 className="mb-2 font-display text-sm font-semibold text-text">
-              Tren Profit Kumulatif — Juli 2026
+              Tren Profit Kumulatif
             </h2>
             <ProfitChart data={dailyProfit} />
           </div>
           <div className="rounded-2xl border border-border bg-surface p-5">
             <h2 className="mb-3 font-display text-sm font-semibold text-text">
-              Upload Report MT5
+              Upload Report MT5 (resync historis)
             </h2>
             <UploadReport masterName={master.name} />
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border border-border bg-surface">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="font-display text-sm font-semibold text-text">
-              Follower &amp; Rasio Bagi Hasil
-            </h2>
-            <span className="text-xs text-text-dim">{masterFollowers.length} follower</span>
-          </div>
-          <div className="divide-y divide-border">
-            {masterFollowers.map((f) => {
-              const payout = payouts.find((p) => p.followerId === f.id);
-              return (
-                <Link
-                  key={f.id}
-                  href={`/masters/${master.id}/followers/${f.id}`}
-                  className="grid grid-cols-1 gap-3 px-5 py-4 transition-colors hover:bg-surface-hi/50 md:grid-cols-[1.2fr_1fr_auto] md:items-center md:gap-6"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-text">{f.name}</span>
-                      <StatusBadge status={f.status} />
-                    </div>
-                    <div className="mt-0.5 text-xs text-text-dim">
-                      #{f.accountNumber} · lot {f.allocatedLot}
-                    </div>
-                  </div>
-
-                  <SplitBar
-                    followerPercent={f.splitPercent}
-                    followerUsd={payout?.followerShareUsd}
-                    masterUsd={payout?.masterShareUsd}
-                  />
-
-                  <div className="flex items-center justify-between gap-4 md:justify-end">
-                    {payout && (
-                      <div className="text-right">
-                        <div className="font-mono text-sm font-semibold tabular text-profit">
-                          {formatUsd(payout.followerShareUsd)}
-                        </div>
-                        <StatusBadge status={payout.status} />
-                      </div>
-                    )}
-                    <ChevronRight size={16} className="text-text-dim" />
-                  </div>
-                </Link>
-              );
-            })}
           </div>
         </div>
       </main>
     </div>
   );
 }
+
