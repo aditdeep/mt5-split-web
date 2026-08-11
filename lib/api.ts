@@ -78,3 +78,37 @@ export async function fetchMasterLive(masterId: string): Promise<{
 export function getMockMasters(): Master[] {
   return mockMasters;
 }
+
+type LiveMasterSummary = {
+  id: number;
+  name: string;
+  broker: string;
+  account_number: string;
+  symbol: string;
+  total_followers: number;
+  total_profit_usd: number;
+  last_report_at: string | null;
+};
+
+export async function fetchMastersLive(): Promise<{ masters: Master[]; live: boolean }> {
+  if (!API_BASE) {
+    return { masters: mockMasters, live: false };
+  }
+
+  const res = await fetch(`${API_BASE}/masters`, { cache: "no-store" });
+  if (!res.ok) return { masters: [], live: true };
+
+  const data: LiveMasterSummary[] = await res.json();
+  const masters: Master[] = data.map((m) => ({
+    id: String(m.id),
+    name: m.name,
+    broker: m.broker,
+    accountNumber: m.account_number,
+    symbol: m.symbol,
+    totalFollowers: m.total_followers,
+    totalProfitUsd: m.total_profit_usd,
+    lastReportAt: m.last_report_at ?? new Date().toISOString(),
+  }));
+
+  return { masters, live: true };
+}
