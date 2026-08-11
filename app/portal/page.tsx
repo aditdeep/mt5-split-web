@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Coins, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { LogOut, Coins, AlertCircle, CheckCircle2, Clock, UploadCloud, Loader2 } from "lucide-react";
 import { authFetch, getToken, logout, getStoredUser } from "@/lib/auth";
 import { getCached, setCached } from "@/lib/cache";
 import { formatUsd, formatDate } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
+import FormField, { inputClass } from "@/components/FormField";
 
 type PayoutRow = {
   id: number;
@@ -42,6 +43,31 @@ export default function FollowerPortalPage() {
   const [data, setData] = useState<DashboardData | null>(() => getCached<DashboardData>("portal"));
   const [error, setError] = useState<string | null>(null);
 
+  // Payment claim form state
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [proof, setProof] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  function load() {
+    authFetch("/me/follower-dashboard")
+      .then(async (res) => {
+        if (res.status === 401) {
+          logout();
+          router.push("/login");
+          return;
+        }
+        if (!res.ok) throw new Error("Gagal memuat data.");
+        const body: DashboardData = await res.json();
+        setData(body);
+        setCached("portal", body);
+        if (!amount) setAmount(String(body.follower.deposit_required_usd));
+      })
+      .catch((e) => setError(e.message));
+  }
+
   useEffect(() => {
     if (!getToken()) {
       router.push("/login");
@@ -52,21 +78,41 @@ export default function FollowerPortalPage() {
       router.push("/");
       return;
     }
-
-    authFetch("/me/follower-dashboard")
-      .then(async (res) => {
-        if (res.status === 401) {
-          logout();
-          router.push("/login");
-          return;
-        }
-        if (!res.ok) throw new Error("Gagal memuat data.");
-        const body = await res.json();
-        setData(body);
-        setCached("portal", body);
-      })
-      .catch((e) => setError(e.message));
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  async function handleSubmitPayment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!data) return;
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("amount_usd", amount);
+      if (note) formData.append("note", note);
+      if (proof) formData.append("proof", proof);
+
+      const res = await authFetch(`/followers/${data.follower.id}/payments`, {
+        method: "POST",
+        body: formData, // no Content-Type — browser sets the multipart boundary itself
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message ?? "Gagal mengirim klaim pembayaran.");
+      }
+
+      setSubmitted(true);
+      setNote("");
+      setProof(null);
+      load();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Gagal mengirim klaim pembayaran.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (error) {
     return <div className="flex min-h-screen items-center justify-center px-4 text-sm text-loss">{error}</div>;
@@ -77,6 +123,7 @@ export default function FollowerPortalPage() {
   }
 
   const { follower, master, payouts, total_owed_to_master_usd } = data;
+  const showPaymentForm = follower.deposit_status !== "paid";
 
   return (
     <div className="min-h-screen bg-bg px-4 py-6 sm:px-8 sm:py-8">
@@ -102,9 +149,7 @@ export default function FollowerPortalPage() {
         {/* Deposit / kill-switch status */}
         <div
           className={`mb-4 flex items-start gap-3 rounded-2xl border p-4 ${
-            follower.can_trade
-              ? "border-profit/30 bg-profit/5"
-              : "border-loss/30 bg-loss/5"
+            follower.can_trade ? "border-profit/30 bg-profit/5" : "border-loss/30 bg-loss/5"
           }`}
         >
           {follower.can_trade ? (
@@ -129,9 +174,7 @@ export default function FollowerPortalPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-surface p-4">
             <div className="text-[11px] uppercase tracking-wider text-text-dim">Split lo</div>
-            <div className="mt-2 font-mono text-lg font-semibold text-profit">
-              {follower.split_percent}%
-            </div>
+            <div className="mt-2 font-mono text-lg font-semibold text-profit">{follower.split_percent}%</div>
           </div>
           <div className="rounded-2xl border border-border bg-surface p-4">
             <div className="text-[11px] uppercase tracking-wider text-text-dim">Status</div>
@@ -140,14 +183,73 @@ export default function FollowerPortalPage() {
             </div>
           </div>
           <div className="col-span-2 rounded-2xl border border-border bg-surface p-4 sm:col-span-1">
-            <div className="text-[11px] uppercase tracking-wider text-text-dim">
-              Belum disetor ke master
-            </div>
-            <div className="mt-2 font-mono text-lg font-semibold text-gold">
-              {formatUsd(total_owed_to_master_usd)}
-            </div>
+            <div className="text-[11px] uppercase tracking-wider text-text-dim">Belum disetor ke master</div>
+            <div className="mt-2 font-mono text-lg font-semibold text-gold">{formatUsd(total_owed_to_master_usd)}</div>
           </div>
         </div>
+
+        {/* Pintu bayar deposit dimuka */}
+        {showPaymentForm && (
+          <div className="mt-6 rounded-2xl border border-border bg-surface p-4 sm:p-5">
+            <h2 className="mb-1 font-display text-sm font-semibold text-text">
+              {follower.deposit_status === "pending_confirmation" ? "Ajukan Ulang / Update Klaim" : "Konfirmasi Sudah Transfer"}
+            </h2>
+            <p className="mb-4 text-xs text-text-dim">
+              Transfer dulu ke rekening yang dikasih admin, lalu isi form ini biar admin bisa konfirmasi.
+            </p>
+
+            {submitted && follower.deposit_status === "pending_confirmation" && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2 text-xs text-gold">
+                <Clock size={13} /> Klaim terkirim, menunggu admin konfirmasi.
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitPayment}>
+              <FormField label="Jumlah Transfer (USD)">
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={inputClass}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </FormField>
+              <FormField label="Catatan (opsional)">
+                <input
+                  className={inputClass}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="misal: transfer via BCA an. Budi"
+                />
+              </FormField>
+              <FormField label="Bukti Transfer (opsional, gambar)">
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border px-3 py-3 text-xs text-text-dim hover:border-gold/40">
+                  <UploadCloud size={16} />
+                  {proof ? proof.name : "Pilih file / foto bukti transfer"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => setProof(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </FormField>
+
+              {submitError && <div className="mb-3 rounded-lg bg-loss/10 px-3 py-2 text-xs text-loss">{submitError}</div>}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-2.5 text-sm font-medium text-bg hover:opacity-90 disabled:opacity-60"
+              >
+                {submitting && <Loader2 size={15} className="animate-spin" />}
+                Kirim Klaim Pembayaran
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="mt-6 rounded-2xl border border-border bg-surface">
           <div className="border-b border-border px-4 py-3">
@@ -176,12 +278,6 @@ export default function FollowerPortalPage() {
             </div>
           )}
         </div>
-
-        {!follower.can_trade && follower.deposit_status === "unpaid" && (
-          <p className="mt-4 text-center text-xs text-text-dim">
-            Sudah transfer? Kirim bukti ke admin lewat channel biasa buat dikonfirmasi.
-          </p>
-        )}
       </div>
     </div>
   );
