@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Coins, Users2, TrendingUp, ArrowUpRight } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import StatCard from "@/components/StatCard";
+import NewMasterButton from "@/components/NewMasterButton";
 import { fetchMastersLive } from "@/lib/api";
 import { formatUsd, formatDateTime } from "@/lib/format";
 
@@ -12,21 +13,26 @@ export default async function OverviewPage() {
   const totalFollowers = masters.reduce((sum, m) => sum + m.totalFollowers, 0);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
-      <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">
+      <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8 md:pl-4">
         <div className="mb-6 sm:mb-8">
           {!live && (
             <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-text-dim/15 px-2.5 py-1 text-[11px] font-medium text-text-dim">
               Mode demo (data contoh) — set NEXT_PUBLIC_API_URL untuk data live
             </span>
           )}
-          <h1 className="font-display text-xl sm:text-2xl font-semibold text-text">
-            Ringkasan Bagi Hasil
-          </h1>
-          <p className="mt-1 text-sm text-text-dim">
-            Profit closed trade dari semua master account.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="font-display text-xl sm:text-2xl font-semibold text-text">
+                Ringkasan Bagi Hasil
+              </h1>
+              <p className="mt-1 text-sm text-text-dim">
+                Profit closed trade dari semua master account.
+              </p>
+            </div>
+            <NewMasterButton />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

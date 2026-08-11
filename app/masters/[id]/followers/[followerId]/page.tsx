@@ -27,9 +27,9 @@ export default async function FollowerDetailPage({
   const deals = dealsForMaster(id).slice(0, 10);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">
         <div className="mb-1 flex items-center gap-1.5 text-xs text-text-dim">
           <Link href="/" className="hover:text-text">
             Ringkasan

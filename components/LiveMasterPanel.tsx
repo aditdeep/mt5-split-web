@@ -6,6 +6,7 @@ import { Coins, Users2, ArrowUpRight, ChevronRight, Radio } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import SplitBar from "@/components/SplitBar";
 import StatusBadge from "@/components/StatusBadge";
+import NewFollowerButton from "@/components/NewFollowerButton";
 import { fetchMasterLive } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
 import type { Master, Follower, PayoutPeriod } from "@/lib/types";
@@ -109,7 +110,10 @@ export default function LiveMasterPanel({
           <h2 className="font-display text-sm font-semibold text-text">
             Follower &amp; Rasio Bagi Hasil
           </h2>
-          <span className="text-xs text-text-dim">{followers.length} follower</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-text-dim">{followers.length} follower</span>
+            <NewFollowerButton masterId={master.id} />
+          </div>
         </div>
         <div className="divide-y divide-border">
           {followers.map((f) => {
