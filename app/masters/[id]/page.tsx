@@ -9,6 +9,7 @@ import ProfitChart from "@/components/ProfitChart";
 import UploadReport from "@/components/UploadReport";
 import LiveMasterPanel from "@/components/LiveMasterPanel";
 import EditMasterButton from "@/components/EditMasterButton";
+import LoginAccountButton from "@/components/LoginAccountButton";
 import { fetchMasterLive } from "@/lib/api";
 import { getToken, logout } from "@/lib/auth";
 import { dailyProfitForMaster } from "@/lib/mock-data";
@@ -95,7 +96,10 @@ export default function MasterDetailPage() {
               {master.broker} · #{master.accountNumber} · {master.symbol}
             </p>
           </div>
-          <EditMasterButton master={master} onUpdated={load} />
+          <div className="flex items-center gap-2">
+            <LoginAccountButton role="master" targetId={id} existingUser={master.loginUser ?? null} onChange={load} />
+            <EditMasterButton master={master} onUpdated={load} onDeleted={() => router.push("/")} />
+          </div>
         </div>
 
         <LiveMasterPanel

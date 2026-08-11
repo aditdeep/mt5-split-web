@@ -8,6 +8,7 @@ import SplitBar from "@/components/SplitBar";
 import StatusBadge from "@/components/StatusBadge";
 import NewFollowerButton from "@/components/NewFollowerButton";
 import EditFollowerButton from "@/components/EditFollowerButton";
+import LoginAccountButton from "@/components/LoginAccountButton";
 import { fetchMasterLive } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
 import type { Master, Follower, PayoutPeriod } from "@/lib/types";
@@ -140,8 +141,16 @@ export default function LiveMasterPanel({
                     <span className="text-sm font-medium text-text">{f.name}</span>
                     <StatusBadge status={f.status} />
                   </div>
-                  <div className="mt-0.5 text-xs text-text-dim">
-                    #{f.accountNumber} · lot {f.allocatedLot}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-text-dim">
+                    <span>
+                      #{f.accountNumber} · lot {f.allocatedLot}
+                    </span>
+                    <LoginAccountButton
+                      role="follower"
+                      targetId={f.id}
+                      existingUser={f.loginUser ?? null}
+                      onChange={refreshNow}
+                    />
                   </div>
                 </div>
 
@@ -160,7 +169,7 @@ export default function LiveMasterPanel({
                       <StatusBadge status={payout.status} />
                     </div>
                   )}
-                  <EditFollowerButton masterId={master.id} follower={f} onUpdated={refreshNow} />
+                  <EditFollowerButton masterId={master.id} follower={f} onUpdated={refreshNow} onDeleted={refreshNow} />
                   <ChevronRight size={16} className="text-text-dim" />
                 </div>
               </Link>

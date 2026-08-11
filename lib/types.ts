@@ -7,6 +7,7 @@ export type Master = {
   totalFollowers: number;
   totalProfitUsd: number; // period-to-date closed profit
   lastReportAt: string; // ISO date
+  loginUser?: { id: number; name: string; email: string } | null;
 };
 
 export type Follower = {
@@ -18,6 +19,7 @@ export type Follower = {
   allocatedLot: number; // relative lot sizing / copy ratio
   status: "active" | "paused";
   joinedAt: string;
+  loginUser?: { id: number; name: string; email: string } | null;
 };
 
 export type Deal = {

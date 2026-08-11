@@ -25,6 +25,7 @@ type LiveMasterDetail = {
   total_profit_usd: number;
   last_report_at: string | null;
   last_synced_at: string | null;
+  login_user: { id: number; name: string; email: string } | null;
   followers: Array<{
     id: number;
     name: string;
@@ -36,6 +37,7 @@ type LiveMasterDetail = {
     deposit_status?: string;
     status: "active" | "paused";
     joined_at: string;
+    user: { id: number; name: string; email: string } | null;
   }>;
 };
 
@@ -76,6 +78,7 @@ export async function fetchMasterLive(masterId: string): Promise<{
     totalFollowers: data.followers.length,
     totalProfitUsd: data.total_profit_usd,
     lastReportAt: data.last_report_at ?? new Date().toISOString(),
+    loginUser: data.login_user,
   };
 
   const followers: Follower[] = data.followers.map((f) => ({
@@ -87,6 +90,7 @@ export async function fetchMasterLive(masterId: string): Promise<{
     allocatedLot: Number(f.allocated_lot),
     status: f.status,
     joinedAt: f.joined_at,
+    loginUser: f.user,
   }));
 
   return { master, followers, payouts: [], live: true, lastSyncedAt: data.last_synced_at };
