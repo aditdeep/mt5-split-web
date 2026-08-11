@@ -12,21 +12,24 @@ import EditMasterButton from "@/components/EditMasterButton";
 import LoginAccountButton from "@/components/LoginAccountButton";
 import { fetchMasterLive } from "@/lib/api";
 import { getToken, logout } from "@/lib/auth";
+import { getCached, setCached } from "@/lib/cache";
 import { dailyProfitForMaster } from "@/lib/mock-data";
 import type { Master, Follower, PayoutPeriod } from "@/lib/types";
+
+type MasterDetailData = {
+  master: Master;
+  followers: Follower[];
+  payouts: PayoutPeriod[];
+  live: boolean;
+  lastSyncedAt: string | null;
+};
 
 export default function MasterDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params.id;
 
-  const [data, setData] = useState<{
-    master: Master;
-    followers: Follower[];
-    payouts: PayoutPeriod[];
-    live: boolean;
-    lastSyncedAt: string | null;
-  } | null>(null);
+  const [data, setData] = useState<MasterDetailData | null>(() => getCached<MasterDetailData>(`master:${id}`));
   const [notFound, setNotFound] = useState(false);
 
   function load() {
@@ -41,6 +44,7 @@ export default function MasterDetailPage() {
         return;
       }
       setData(result);
+      setCached(`master:${id}`, result);
     });
   }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Coins, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import { authFetch, getToken, logout, getStoredUser } from "@/lib/auth";
+import { getCached, setCached } from "@/lib/cache";
 import { formatUsd, formatDate } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -38,7 +39,7 @@ type DashboardData = {
 
 export default function FollowerPortalPage() {
   const router = useRouter();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<DashboardData | null>(() => getCached<DashboardData>("portal"));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,7 +61,9 @@ export default function FollowerPortalPage() {
           return;
         }
         if (!res.ok) throw new Error("Gagal memuat data.");
-        setData(await res.json());
+        const body = await res.json();
+        setData(body);
+        setCached("portal", body);
       })
       .catch((e) => setError(e.message));
   }, [router]);

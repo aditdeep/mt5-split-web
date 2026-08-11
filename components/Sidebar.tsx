@@ -7,12 +7,13 @@ import { LayoutGrid, Users2, Coins, Menu, X, LogOut } from "lucide-react";
 import type { Master } from "@/lib/types";
 import { fetchMastersLive } from "@/lib/api";
 import { getStoredUser, getToken, logout } from "@/lib/auth";
+import { getCached, setCached } from "@/lib/cache";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [masters, setMasters] = useState<Master[]>([]);
+  const [masters, setMasters] = useState<Master[]>(() => getCached<Master[]>("masters") ?? []);
   const userName = typeof window !== "undefined" ? getStoredUser()?.name : undefined;
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export default function Sidebar() {
         return;
       }
       setMasters(res.masters);
+      setCached("masters", res.masters);
     });
   }, [router]);
 

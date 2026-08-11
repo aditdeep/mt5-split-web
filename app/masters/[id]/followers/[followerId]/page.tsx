@@ -166,8 +166,10 @@ export default function FollowerDetailPage() {
               Gate token buat EA <code className="rounded bg-surface-hi px-1.5 py-0.5">FollowerGate.mqh</code> follower ini:
             </p>
             <div className="mt-1.5 flex items-center gap-2">
-              <code className="rounded-lg bg-surface-hi px-3 py-1.5 text-xs text-text">{follower.gate_token}</code>
-              <button onClick={copyGateToken} className="rounded-lg p-1.5 text-text-dim hover:bg-surface-hi hover:text-text">
+              <code className="min-w-0 flex-1 truncate rounded-lg bg-surface-hi px-3 py-1.5 font-mono text-xs text-text sm:break-all sm:whitespace-normal">
+                {follower.gate_token}
+              </code>
+              <button onClick={copyGateToken} className="shrink-0 rounded-lg p-1.5 text-text-dim hover:bg-surface-hi hover:text-text">
                 {copied ? <Check size={14} className="text-profit" /> : <Copy size={14} />}
               </button>
             </div>

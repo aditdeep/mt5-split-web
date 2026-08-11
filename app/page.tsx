@@ -9,12 +9,13 @@ import StatCard from "@/components/StatCard";
 import NewMasterButton from "@/components/NewMasterButton";
 import { fetchMastersLive } from "@/lib/api";
 import { getToken, logout } from "@/lib/auth";
+import { getCached, setCached } from "@/lib/cache";
 import { formatUsd, formatDateTime } from "@/lib/format";
 import type { Master } from "@/lib/types";
 
 export default function OverviewPage() {
   const router = useRouter();
-  const [masters, setMasters] = useState<Master[] | null>(null);
+  const [masters, setMasters] = useState<Master[] | null>(() => getCached<Master[]>("masters"));
   const [live, setLive] = useState(false);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function OverviewPage() {
       }
       setMasters(res.masters);
       setLive(res.live);
+      setCached("masters", res.masters);
     });
   }, [router]);
 
