@@ -7,6 +7,7 @@ import StatCard from "@/components/StatCard";
 import SplitBar from "@/components/SplitBar";
 import StatusBadge from "@/components/StatusBadge";
 import NewFollowerButton from "@/components/NewFollowerButton";
+import EditFollowerButton from "@/components/EditFollowerButton";
 import { fetchMasterLive } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
 import type { Master, Follower, PayoutPeriod } from "@/lib/types";
@@ -74,6 +75,16 @@ export default function LiveMasterPanel({
     ? Math.round(followers.reduce((s, f) => s + f.splitPercent, 0) / followers.length)
     : 0;
 
+  async function refreshNow() {
+    const result = await fetchMasterLive(masterId);
+    if (result) {
+      setMaster(result.master);
+      setFollowers(result.followers);
+      setLastSyncedAt(result.lastSyncedAt);
+      setSecondsSincePoll(0);
+    }
+  }
+
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
@@ -112,7 +123,7 @@ export default function LiveMasterPanel({
           </h2>
           <div className="flex items-center gap-3">
             <span className="text-xs text-text-dim">{followers.length} follower</span>
-            <NewFollowerButton masterId={master.id} />
+            <NewFollowerButton masterId={master.id} onCreated={refreshNow} />
           </div>
         </div>
         <div className="divide-y divide-border">
@@ -140,7 +151,7 @@ export default function LiveMasterPanel({
                   masterUsd={payout?.masterShareUsd}
                 />
 
-                <div className="flex items-center justify-between gap-4 md:justify-end">
+                <div className="flex items-center justify-between gap-3 md:justify-end">
                   {payout && (
                     <div className="text-right">
                       <div className="font-mono text-sm font-semibold tabular text-profit">
@@ -149,6 +160,7 @@ export default function LiveMasterPanel({
                       <StatusBadge status={payout.status} />
                     </div>
                   )}
+                  <EditFollowerButton masterId={master.id} follower={f} onUpdated={refreshNow} />
                   <ChevronRight size={16} className="text-text-dim" />
                 </div>
               </Link>

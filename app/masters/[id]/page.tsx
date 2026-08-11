@@ -1,29 +1,80 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import ProfitChart from "@/components/ProfitChart";
 import UploadReport from "@/components/UploadReport";
 import LiveMasterPanel from "@/components/LiveMasterPanel";
+import EditMasterButton from "@/components/EditMasterButton";
 import { fetchMasterLive } from "@/lib/api";
+import { getToken, logout } from "@/lib/auth";
 import { dailyProfitForMaster } from "@/lib/mock-data";
+import type { Master, Follower, PayoutPeriod } from "@/lib/types";
 
-export default async function MasterDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const result = await fetchMasterLive(id);
-  if (!result) notFound();
+export default function MasterDetailPage() {
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const id = params.id;
 
-  const { master, followers, payouts, live, lastSyncedAt } = result;
+  const [data, setData] = useState<{
+    master: Master;
+    followers: Follower[];
+    payouts: PayoutPeriod[];
+    live: boolean;
+    lastSyncedAt: string | null;
+  } | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
-  // The profit trend chart isn't wired to the live API yet (see
-  // DashboardController::profitTrend on the backend for the endpoint) —
-  // it still reads the bundled mock series so the page has something to
-  // show in demo mode. Swap this for a fetch to
-  // `${API_BASE}/masters/${id}/profit-trend` once you're ready.
+  function load() {
+    fetchMasterLive(id).then((result) => {
+      if (!result) {
+        setNotFound(true);
+        return;
+      }
+      if (result.unauthorized) {
+        logout();
+        router.push("/login");
+        return;
+      }
+      setData(result);
+    });
+  }
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.push("/login");
+      return;
+    }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, router]);
+
+  if (notFound) {
+    return (
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center text-sm text-text-dim">
+          Master tidak ditemukan atau lo nggak punya akses ke situ.
+        </main>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center text-sm text-text-dim">
+          Memuat…
+        </main>
+      </div>
+    );
+  }
+
+  const { master, followers, payouts, live, lastSyncedAt } = data;
   const dailyProfit = dailyProfitForMaster(id);
 
   return (
@@ -37,13 +88,14 @@ export default async function MasterDetailPage({
           <ChevronRight size={12} />
           <span className="text-text">{master.name}</span>
         </div>
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-semibold text-text">{master.name}</h1>
             <p className="mt-1 text-sm text-text-dim">
               {master.broker} · #{master.accountNumber} · {master.symbol}
             </p>
           </div>
+          <EditMasterButton master={master} onUpdated={load} />
         </div>
 
         <LiveMasterPanel
@@ -73,4 +125,3 @@ export default async function MasterDetailPage({
     </div>
   );
 }
-

@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { UserPlus, Loader2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import FormField, { inputClass } from "@/components/FormField";
 import { authFetch, getStoredUser } from "@/lib/auth";
 
-export default function NewFollowerButton({ masterId }: { masterId: string }) {
-  const router = useRouter();
+export default function NewFollowerButton({ masterId, onCreated }: { masterId: string; onCreated?: () => void }) {
   const [canAdd, setCanAdd] = useState(false);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,7 +49,7 @@ export default function NewFollowerButton({ masterId }: { masterId: string }) {
       }
       setOpen(false);
       setForm({ name: "", account_number: "", split_percent: "70", allocated_lot: "1", capital_usd: "", deposit_percent: "10" });
-      router.refresh();
+      onCreated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menambah follower.");
     } finally {

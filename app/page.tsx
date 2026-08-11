@@ -1,13 +1,48 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Coins, Users2, TrendingUp, ArrowUpRight } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import StatCard from "@/components/StatCard";
 import NewMasterButton from "@/components/NewMasterButton";
 import { fetchMastersLive } from "@/lib/api";
+import { getToken, logout } from "@/lib/auth";
 import { formatUsd, formatDateTime } from "@/lib/format";
+import type { Master } from "@/lib/types";
 
-export default async function OverviewPage() {
-  const { masters, live } = await fetchMastersLive();
+export default function OverviewPage() {
+  const router = useRouter();
+  const [masters, setMasters] = useState<Master[] | null>(null);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.push("/login");
+      return;
+    }
+    fetchMastersLive().then((res) => {
+      if (res.unauthorized) {
+        logout();
+        router.push("/login");
+        return;
+      }
+      setMasters(res.masters);
+      setLive(res.live);
+    });
+  }, [router]);
+
+  if (masters === null) {
+    return (
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center text-sm text-text-dim">
+          Memuat…
+        </main>
+      </div>
+    );
+  }
 
   const totalProfit = masters.reduce((sum, m) => sum + m.totalProfitUsd, 0);
   const totalFollowers = masters.reduce((sum, m) => sum + m.totalFollowers, 0);
@@ -15,7 +50,7 @@ export default async function OverviewPage() {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
-      <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8 md:pl-4">
+      <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">
         <div className="mb-6 sm:mb-8">
           {!live && (
             <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-text-dim/15 px-2.5 py-1 text-[11px] font-medium text-text-dim">
@@ -31,7 +66,7 @@ export default async function OverviewPage() {
                 Profit closed trade dari semua master account.
               </p>
             </div>
-            <NewMasterButton />
+            <NewMasterButton onCreated={() => fetchMastersLive().then((r) => setMasters(r.masters))} />
           </div>
         </div>
 
@@ -52,11 +87,7 @@ export default async function OverviewPage() {
           </h2>
           {masters.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-text-dim">
-              Belum ada master account. Tambahin lewat{" "}
-              <code className="rounded bg-surface-hi px-1.5 py-0.5 text-xs">
-                POST /api/masters
-              </code>
-              .
+              Belum ada master account. Klik &quot;Tambah Master&quot; di atas.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

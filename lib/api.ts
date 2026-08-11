@@ -1,9 +1,20 @@
 import type { Master, Follower, PayoutPeriod } from "./types";
 import { masters as mockMasters, getFollowersForMaster, getMaster, payoutsForMaster } from "./mock-data";
+import { getToken } from "./auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL; // e.g. https://mt5-split-api.onrender.com/api
 
 export const isLiveApiConfigured = Boolean(API_BASE);
+
+// These helpers are meant to be called from CLIENT components only — the
+// auth token lives in localStorage, which server components can't read.
+function authHeaders(): HeadersInit {
+  const token = getToken();
+  return {
+    Accept: "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 type LiveMasterDetail = {
   id: number;
@@ -20,6 +31,9 @@ type LiveMasterDetail = {
     account_number: string;
     split_percent: string;
     allocated_lot: string;
+    capital_usd?: string;
+    deposit_percent?: string;
+    deposit_status?: string;
     status: "active" | "paused";
     joined_at: string;
   }>;
@@ -31,10 +45,9 @@ export async function fetchMasterLive(masterId: string): Promise<{
   payouts: PayoutPeriod[];
   live: boolean;
   lastSyncedAt: string | null;
+  unauthorized?: boolean;
 } | null> {
   if (!API_BASE) {
-    // No backend wired up yet — fall back to the bundled mock data so the
-    // dashboard keeps working in demo mode.
     const master = getMaster(masterId);
     if (!master) return null;
     return {
@@ -46,7 +59,11 @@ export async function fetchMasterLive(masterId: string): Promise<{
     };
   }
 
-  const res = await fetch(`${API_BASE}/masters/${masterId}`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE}/masters/${masterId}`, {
+    cache: "no-store",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) return { master: null as never, followers: [], payouts: [], live: true, lastSyncedAt: null, unauthorized: true };
   if (!res.ok) return null;
   const data: LiveMasterDetail = await res.json();
 
@@ -90,12 +107,16 @@ type LiveMasterSummary = {
   last_report_at: string | null;
 };
 
-export async function fetchMastersLive(): Promise<{ masters: Master[]; live: boolean }> {
+export async function fetchMastersLive(): Promise<{ masters: Master[]; live: boolean; unauthorized?: boolean }> {
   if (!API_BASE) {
     return { masters: mockMasters, live: false };
   }
 
-  const res = await fetch(`${API_BASE}/masters`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE}/masters`, {
+    cache: "no-store",
+    headers: authHeaders(),
+  });
+  if (res.status === 401) return { masters: [], live: true, unauthorized: true };
   if (!res.ok) return { masters: [], live: true };
 
   const data: LiveMasterSummary[] = await res.json();
