@@ -3,6 +3,7 @@ const styles: Record<string, string> = {
   paused: "bg-text-dim/15 text-text-dim",
   paid: "bg-profit/15 text-profit",
   pending: "bg-gold/15 text-gold",
+  rejected: "bg-loss/15 text-loss",
 };
 
 const labels: Record<string, string> = {
@@ -10,6 +11,7 @@ const labels: Record<string, string> = {
   paused: "Nonaktif",
   paid: "Terbayar",
   pending: "Tertunda",
+  rejected: "Ditolak",
 };
 
 export default function StatusBadge({ status }: { status: string }) {
